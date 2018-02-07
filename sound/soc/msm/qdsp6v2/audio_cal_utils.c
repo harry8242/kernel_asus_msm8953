@@ -1,4 +1,4 @@
-/* Copyright (c) 2014-2017, The Linux Foundation. All rights reserved.
+/* Copyright (c) 2014-2016, The Linux Foundation. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2 and
@@ -601,6 +601,7 @@ static struct cal_block_data *create_cal_block(struct cal_type_data *cal_type,
 	}
 
 	INIT_LIST_HEAD(&cal_block->list);
+	//list_add_tail(&cal_block->list, &cal_type->cal_blocks);
 
 	cal_block->map_data.ion_map_handle = basic_cal->cal_data.mem_handle;
 	if (basic_cal->cal_data.mem_handle > 0) {
@@ -642,7 +643,7 @@ static struct cal_block_data *create_cal_block(struct cal_type_data *cal_type,
 done:
 	return cal_block;
 err:
-	kfree(cal_block->cal_info);
+        kfree(cal_block->cal_info);
 	kfree(cal_block->client_info);
 	kfree(cal_block);
 	cal_block = NULL;

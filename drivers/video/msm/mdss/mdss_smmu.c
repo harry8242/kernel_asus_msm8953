@@ -539,9 +539,9 @@ int mdss_smmu_init(struct mdss_data_type *mdata, struct device *dev)
 }
 
 static struct mdss_smmu_domain mdss_mdp_unsec = {
-	"mdp_0", MDSS_IOMMU_DOMAIN_UNSECURE, SZ_1M, (SZ_4G - SZ_1M)};
+	"mdp_0", MDSS_IOMMU_DOMAIN_UNSECURE, SZ_128K, (SZ_4G - SZ_128K)};
 static struct mdss_smmu_domain mdss_rot_unsec = {
-	NULL, MDSS_IOMMU_DOMAIN_ROT_UNSECURE, SZ_1M, (SZ_4G - SZ_1M)};
+	NULL, MDSS_IOMMU_DOMAIN_ROT_UNSECURE, SZ_128K, (SZ_4G - SZ_128K)};
 static struct mdss_smmu_domain mdss_mdp_sec = {
 	"mdp_1", MDSS_IOMMU_DOMAIN_SECURE, SZ_1M, (SZ_4G - SZ_1M)};
 static struct mdss_smmu_domain mdss_rot_sec = {

@@ -5315,12 +5315,12 @@ static int ipa3_load_single_fw(const struct firmware *firmware,
 	return 0;
 }
 
+
 /**
  * ipa3_load_fws() - Load the IPAv3 FWs into IPA&GSI SRAM.
  *
  * @firmware: Structure which contains the FW data from the user space.
  * @gsi_mem_base: GSI base address
- *
  * Return value: 0 on success, negative otherwise
  *
  */
@@ -5339,6 +5339,7 @@ int ipa3_load_fws(const struct firmware *firmware, phys_addr_t gsi_mem_base)
 		return -EINVAL;
 	}
 
+
 	ipa_assert_on(!firmware);
 	/* One program header per FW image: GSI, DPS and HPS */
 	if (firmware->size < (sizeof(*ehdr) + 3 * sizeof(*phdr))) {
@@ -5355,6 +5356,7 @@ int ipa3_load_fws(const struct firmware *firmware, phys_addr_t gsi_mem_base)
 	}
 	phdr = (struct elf32_phdr *)(firmware->data + sizeof(*ehdr));
 
+
 	/*
 	 * Each ELF program header represents a FW image and contains:
 	 *  p_vaddr : The starting address to which the FW needs to loaded.
@@ -5362,6 +5364,7 @@ int ipa3_load_fws(const struct firmware *firmware, phys_addr_t gsi_mem_base)
 	 *  p_filesz: The size of the FW image embedded inside the ELF
 	 *  p_offset: Absolute offset to the image from the head of the ELF
 	 */
+
 
 	/* Load GSI FW image */
 	gsi_get_inst_ram_offset_and_size(&gsi_iram_ofst, &gsi_iram_size);
@@ -5380,8 +5383,10 @@ int ipa3_load_fws(const struct firmware *firmware, phys_addr_t gsi_mem_base)
 	if (rc)
 		return rc;
 
+
 	phdr++;
 	ipa_reg_mem_base = ipa3_ctx->ipa_wrapper_base + ipahal_get_reg_base();
+
 
 	/* Load IPA DPS FW image */
 	ipa_reg_ofst = ipahal_get_reg_ofst(IPA_DPS_SEQUENCER_FIRST);
@@ -5399,6 +5404,7 @@ int ipa3_load_fws(const struct firmware *firmware, phys_addr_t gsi_mem_base)
 	rc = ipa3_load_single_fw(firmware, phdr);
 	if (rc)
 		return rc;
+
 
 	phdr++;
 

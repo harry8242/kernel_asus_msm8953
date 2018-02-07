@@ -1424,7 +1424,6 @@ int mdss_dsi_bta_status_check(struct mdss_dsi_ctrl_pdata *ctrl_pdata)
 {
 	int ret = 0;
 	unsigned long flag;
-	int ignore_underflow = 0;
 
 	if (ctrl_pdata == NULL) {
 		pr_err("%s: Invalid input data\n", __func__);
@@ -1439,9 +1438,6 @@ int mdss_dsi_bta_status_check(struct mdss_dsi_ctrl_pdata *ctrl_pdata)
 
 	mutex_lock(&ctrl_pdata->cmd_mutex);
 
-	if (ctrl_pdata->panel_mode == DSI_VIDEO_MODE)
-		ignore_underflow = 1;
-
 	pr_debug("%s: Checking BTA status\n", __func__);
 
 	mdss_dsi_clk_ctrl(ctrl_pdata, ctrl_pdata->dsi_clk_handle,
@@ -1450,9 +1446,6 @@ int mdss_dsi_bta_status_check(struct mdss_dsi_ctrl_pdata *ctrl_pdata)
 	reinit_completion(&ctrl_pdata->bta_comp);
 	mdss_dsi_enable_irq(ctrl_pdata, DSI_BTA_TERM);
 	spin_unlock_irqrestore(&ctrl_pdata->mdp_lock, flag);
-	/* mask out overflow errors */
-	if (ignore_underflow)
-		mdss_dsi_set_reg(ctrl_pdata, 0x10c, 0x0f0000, 0x0f0000);
 	MIPI_OUTP(ctrl_pdata->ctrl_base + 0x098, 0x01); /* trigger  */
 	wmb();
 
@@ -1461,13 +1454,6 @@ int mdss_dsi_bta_status_check(struct mdss_dsi_ctrl_pdata *ctrl_pdata)
 	if (ret <= 0) {
 		mdss_dsi_disable_irq(ctrl_pdata, DSI_BTA_TERM);
 		pr_err("%s: DSI BTA error: %i\n", __func__, ret);
-	}
-
-	if (ignore_underflow) {
-		/* clear pending overflow status */
-		mdss_dsi_set_reg(ctrl_pdata, 0xc, 0xffffffff, 0x44440000);
-		/* restore overflow isr */
-		mdss_dsi_set_reg(ctrl_pdata, 0x10c, 0x0f0000, 0);
 	}
 
 	mdss_dsi_clk_ctrl(ctrl_pdata, ctrl_pdata->dsi_clk_handle,
@@ -2011,6 +1997,7 @@ end:
 	return rp->read_cnt;
 }
 
+//#define DSI_CMD_DEBUG 1	//ASUS_BSP: Austin +++
 static int mdss_dsi_cmd_dma_tx(struct mdss_dsi_ctrl_pdata *ctrl,
 					struct dsi_buf *tp)
 {
@@ -2018,9 +2005,22 @@ static int mdss_dsi_cmd_dma_tx(struct mdss_dsi_ctrl_pdata *ctrl,
 	int domain = MDSS_IOMMU_DOMAIN_UNSECURE;
 	char *bp;
 	struct mdss_dsi_ctrl_pdata *mctrl = NULL;
+	//ASUS_BSP: Austin ++
+	#ifdef DSI_CMD_DEBUG
+	int i;
+	#endif
+	//ASUS_BSP: Austin --
 	int ignored = 0;	/* overflow ignored */
 
 	bp = tp->data;
+	//ASUS_BSP: Austin ++
+	#ifdef DSI_CMD_DEBUG
+	printk("%s: ", __func__);
+	for (i = 0; i < tp->len; i++)
+		printk("%x \n", *bp++);
+	printk("\n");
+	#endif
+	//ASUS_BSP: Austin --
 
 	len = ALIGN(tp->len, 4);
 	ctrl->dma_size = ALIGN(tp->len, SZ_4K);
@@ -2334,8 +2334,7 @@ void mdss_dsi_wait4video_done(struct mdss_dsi_ctrl_pdata *ctrl)
 
 	/* DSI_INTL_CTRL */
 	data = MIPI_INP((ctrl->ctrl_base) + 0x0110);
-	/* clear previous VIDEO_DONE interrupt as well */
-	data &= (DSI_INTR_TOTAL_MASK | DSI_INTR_VIDEO_DONE);
+	data &= DSI_INTR_TOTAL_MASK;
 	data |= DSI_INTR_VIDEO_DONE_MASK;
 
 	MIPI_OUTP((ctrl->ctrl_base) + 0x0110, data);
@@ -2454,8 +2453,15 @@ void mdss_dsi_cmd_mdp_busy(struct mdss_dsi_ctrl_pdata *ctrl)
 		if (!ctrl->mdp_busy)
 			rc = 1;
 		spin_unlock_irqrestore(&ctrl->mdp_lock, flags);
-		if (!rc && mdss_dsi_mdp_busy_tout_check(ctrl))
-			pr_err("%s: timeout error\n", __func__);
+		if (!rc) {
+			if (mdss_dsi_mdp_busy_tout_check(ctrl)) {
+				pr_err("%s: timeout error\n", __func__);
+				MDSS_XLOG_TOUT_HANDLER("mdp", "dsi0_ctrl",
+					"dsi0_phy", "dsi1_ctrl", "dsi1_phy",
+					"vbif", "vbif_nrt", "dbg_bus",
+					"vbif_dbg_bus", "panic");
+			}
+		}
 	}
 	pr_debug("%s: done pid=%d\n", __func__, current->pid);
 	MDSS_XLOG(ctrl->ndx, ctrl->mdp_busy, current->pid, XLOG_FUNC_EXIT);
@@ -3076,7 +3082,7 @@ static void __dsi_error_counter(struct dsi_err_container *err_container)
 		pr_err("%s: panic in WQ as dsi error intrs within:%dms\n",
 				__func__, err_container->err_time_delta);
 		MDSS_XLOG_TOUT_HANDLER_WQ("mdp", "dsi0_ctrl", "dsi0_phy",
-			"dsi1_ctrl", "dsi1_phy");
+			"dsi1_ctrl", "dsi1_phy", "panic");
 	}
 }
 

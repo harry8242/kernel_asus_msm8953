@@ -87,7 +87,6 @@
 #define TSENS_TM_CRITICAL_INT_EN		BIT(2)
 #define TSENS_TM_UPPER_INT_EN			BIT(1)
 #define TSENS_TM_LOWER_INT_EN			BIT(0)
-#define TSENS_TM_UPPER_LOWER_INT_DISABLE	0xffffffff
 
 #define TSENS_TM_UPPER_INT_MASK(n)	(((n) & 0xffff0000) >> 16)
 #define TSENS_TM_LOWER_INT_MASK(n)	((n) & 0xffff)
@@ -844,8 +843,8 @@ struct tsens_tm_device {
 	uint32_t			tsens_num_sensor;
 	int				tsens_irq;
 	int				tsens_critical_irq;
-	void __iomem			*tsens_addr;
-	void __iomem			*tsens_calib_addr;
+	void				*tsens_addr;
+	void				*tsens_calib_addr;
 	int				tsens_len;
 	int				calib_len;
 	struct resource			*res_tsens_mem;
@@ -2709,7 +2708,6 @@ static int tsens_hw_init(struct tsens_tm_device *tmdev)
 {
 	void __iomem *srot_addr;
 	unsigned int srot_val;
-	void __iomem *int_mask_addr;
 
 	if (!tmdev) {
 		pr_err("Invalid tsens device\n");
@@ -2723,10 +2721,6 @@ static int tsens_hw_init(struct tsens_tm_device *tmdev)
 			pr_err("TSENS device is not enabled\n");
 			return -ENODEV;
 		}
-		int_mask_addr = TSENS_TM_UPPER_LOWER_INT_MASK
-					(tmdev->tsens_addr);
-		writel_relaxed(TSENS_TM_UPPER_LOWER_INT_DISABLE,
-					int_mask_addr);
 		writel_relaxed(TSENS_TM_CRITICAL_INT_EN |
 			TSENS_TM_UPPER_INT_EN | TSENS_TM_LOWER_INT_EN,
 			TSENS_TM_INT_EN(tmdev->tsens_addr));
@@ -5847,11 +5841,6 @@ static int tsens_thermal_zone_register(struct tsens_tm_device *tmdev)
 	const struct of_device_id *id;
 	struct device_node *of_node;
 
-	if (tmdev == NULL) {
-		pr_err("Invalid tsens instance\n");
-		return -EINVAL;
-	}
-
 	of_node = tmdev->pdev->dev.of_node;
 	if (of_node == NULL) {
 		pr_err("Invalid of_node??\n");
@@ -5867,6 +5856,11 @@ static int tsens_thermal_zone_register(struct tsens_tm_device *tmdev)
 	if (id == NULL) {
 		pr_err("can not find tsens_match of_node\n");
 		return -ENODEV;
+	}
+
+	if (tmdev == NULL) {
+		pr_err("Invalid tsens instance\n");
+		return -EINVAL;
 	}
 
 	for (i = 0; i < tmdev->tsens_num_sensor; i++) {

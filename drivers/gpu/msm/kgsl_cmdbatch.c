@@ -350,7 +350,10 @@ static int kgsl_cmdbatch_add_sync_fence(struct kgsl_device *device,
 	unsigned long flags;
 	int ret = 0;
 
+#if defined(CONFIG_SYNC)
 	fence = sync_fence_fdget(sync->fd);
+#endif
+
 	if (fence == NULL)
 		return -EINVAL;
 
@@ -386,17 +389,19 @@ static int kgsl_cmdbatch_add_sync_fence(struct kgsl_device *device,
 		kgsl_cmdbatch_put(cmdbatch);
 
 		/*
-		 * Print a syncpoint_fence_expire trace if
-		 * fence is already signaled or there is
-		 * a failure in registering the fence waiter.
-		 */
+		* Print a syncpoint_fence_expire trace if
+		* fence is already signaled or there is
+		* a failure in registering the fence waiter.
+		*/
 		trace_syncpoint_fence_expire(cmdbatch, (ret < 0) ?
 				"error" : fence->name);
 	} else {
 		spin_unlock_irqrestore(&event->handle_lock, flags);
 	}
 
+#if defined(CONFIG_SYNC)
 	sync_fence_put(fence);
+#endif
 	return ret;
 }
 

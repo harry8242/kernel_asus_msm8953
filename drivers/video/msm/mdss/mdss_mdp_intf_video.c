@@ -1,4 +1,4 @@
-/* Copyright (c) 2012-2017, The Linux Foundation. All rights reserved.
+/* Copyright (c) 2012-2016, The Linux Foundation. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2 and
@@ -2026,6 +2026,8 @@ void mdss_mdp_switch_to_cmd_mode(struct mdss_mdp_ctl *ctl, int prep)
 	mdss_bus_bandwidth_ctrl(false);
 }
 
+extern int g_fps_customise_update;
+
 static void early_wakeup_dfps_update_work(struct work_struct *work)
 {
 	struct mdss_mdp_video_ctx *ctx =
@@ -2072,6 +2074,10 @@ static void early_wakeup_dfps_update_work(struct work_struct *work)
 	}
 
 	data.fps = dfps;
+	//fix DFPS austin+++	
+	if (g_fps_customise_update != pdata->panel_info.default_fps)
+		data.fps = g_fps_customise_update;
+	
 	if (mdss_mdp_dfps_update_params(mfd, pdata, &data))
 		pr_err("failed to set dfps params!\n");
 
@@ -2109,21 +2115,10 @@ static int mdss_mdp_video_early_wake_up(struct mdss_mdp_ctl *ctl)
 	 * lot of latency rendering the input events useless in preventing the
 	 * idle time out.
 	 */
-	if ((ctl->mfd->idle_state == MDSS_FB_IDLE_TIMER_RUNNING) ||
-				(ctl->mfd->idle_state == MDSS_FB_IDLE)) {
-		/*
-		 * Modify the idle time so that an idle fallback can be
-		 * triggered for those cases, where we have no update
-		 * despite of a touch event and idle time is 0.
-		 */
-		if (!ctl->mfd->idle_time) {
-			ctl->mfd->idle_time = 70;
-			schedule_delayed_work(&ctl->mfd->idle_notify_work,
-							msecs_to_jiffies(200));
-		} else {
+	if (ctl->mfd->idle_state == MDSS_FB_IDLE_TIMER_RUNNING) {
+		if (ctl->mfd->idle_time)
 			mod_delayed_work(system_wq, &ctl->mfd->idle_notify_work,
 					 msecs_to_jiffies(ctl->mfd->idle_time));
-		}
 		pr_debug("Delayed idle time\n");
 	} else {
 		pr_debug("Nothing to done for this state (%d)\n",
