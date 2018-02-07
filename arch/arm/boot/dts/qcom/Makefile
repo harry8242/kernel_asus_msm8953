@@ -210,6 +210,12 @@ dtb-$(CONFIG_ARCH_MSM8940) += msm8940-pmi8937-cdp.dtb \
 	msm8940-pmi8940-rcm.dtb \
 	msm8940-pmi8940-qrd-sku7.dtb
 
+ifeq ($(CONFIG_MACH_ASUS_MSM8953),y)
+dtb-$(CONFIG_ARCH_MSM8953) += msm8953-mtp.dtb \
+        ze552kl-evb_msm8953-mtp.dtb \
+        ze552kl-sr1_msm8953-mtp.dtb \
+        ze520kl-sr1_msm8953-mtp.dtb
+else
 dtb-$(CONFIG_ARCH_MSM8953) += msm8953-sim.dtb \
 	msm8953-rumi.dtb \
 	msm8953-cdp.dtb \
@@ -224,6 +230,7 @@ dtb-$(CONFIG_ARCH_MSM8953) += msm8953-sim.dtb \
 	msm8953-cdp-1200p.dtb \
 	msm8953-iot-mtp.dtb \
 	apq8053-iot-mtp.dtb
+endif
 
 dtb-$(CONFIG_ARCH_SDM450) += sdm450-rcm.dtb \
 	sdm450-cdp.dtb \
